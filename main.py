@@ -29,7 +29,7 @@ def get_energy_usage() -> dict:
                 total = total.groups()[0]
                 current = re.search(r"1-0:1\.7\.0\*255\((\d*\.\d*)\*W", reading)
                 current = current.groups()[0]
-                return {"total": total, "current": current}
+                return {"total": float(total), "current": float(current)}
 
 
 def write_energy_usage_to_influx(energy_usage: dict):
