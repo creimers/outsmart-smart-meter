@@ -25,11 +25,11 @@ def get_energy_usage() -> dict:
             reading = ser.read(300).decode("utf-8")
             ser.flushInput()
             if reading.startswith("/"):
-                total = re.search(r"(\d*\.\d*)\*kWh", reading)
-                total = total.groups()[0]
-                current = re.search(r"1-0:1\.7\.0\*255\((\d*\.\d*)\*W", reading)
-                current = current.groups()[0]
-                return {"total": float(total), "current": float(current)}
+                acc = re.search(r"(\d*\.\d*)\*kWh", reading)
+                acc = acc.groups()[0]
+                curr = re.search(r"1-0:1\.7\.0\*255\((\d*\.\d*)\*W", reading)
+                curr = curr.groups()[0]
+                return {"acc": float(acc), "curr": float(curr)}
 
 
 def write_energy_usage_to_influx(energy_usage: dict):
@@ -43,7 +43,10 @@ def write_energy_usage_to_influx(energy_usage: dict):
 
     point = {
         "measurement": "electricity",
-        "fields": {"kwh": energy_usage["total"], "current": energy_usage["current"]},
+        "fields": {
+            "acc": energy_usage["acc"],
+            "curr": energy_usage["curr"],
+        },
     }
 
     write_api.write(bucket, org, Point.from_dict(point))
