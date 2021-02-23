@@ -17,7 +17,7 @@ KEYWORDS = {
 }
 
 
-def get_energy_usage() -> float:
+def get_energy_usage() -> dict:
     with serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=7, parity="E", timeout=1
     ) as ser:
@@ -25,12 +25,14 @@ def get_energy_usage() -> float:
             reading = ser.read(300).decode("utf-8")
             ser.flushInput()
             if reading.startswith("/"):
-                match = re.search(r"(\d*\.\d*)\*kWh", reading)
-                value = match.groups()[0]
-                return float(value)
+                total = re.search(r"(\d*\.\d*)\*kWh", reading)
+                total = total.groups()[0]
+                current = re.search(r"1-0:1\.7\.0\*255\((\d*\.\d*)\*W", reading)
+                current = current.groups()[0]
+                return {"total": total, "current": current}
 
 
-def write_energy_usage_to_influx(kwh: float):
+def write_energy_usage_to_influx(energy_usage: dict):
     load_dotenv()
     token = os.getenv("INFLUX_TOKEN")
     org = os.getenv("INFLUX_ORG")
@@ -39,9 +41,11 @@ def write_energy_usage_to_influx(kwh: float):
     client = InfluxDBClient(url=url, token=token)
     write_api = client.write_api(write_options=SYNCHRONOUS)
 
-    point = {"measurement": "electricity", "fields": {"kwh": kwh}}
+    point = {
+        "measurement": "electricity",
+        "fields": {"kwh": energy_usage["total"], "current": energy_usage["current"]},
+    }
 
-    # influx_data = [Point.from_dict(d) for d in data]
     write_api.write(bucket, org, Point.from_dict(point))
 
     pass
