@@ -6,15 +6,18 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 import serial
 
-KEYWORDS = {
-    "A+": "1-0:1.8.0",  # Meter reading import
-    "A-": "1-0:2.8.0",  # Meter reading export
-    "L1": "1-0:21.7.255",  # Power L1
-    "L2": "1-0:41.7.255",  # Power L2
-    "L3": "1-0:61.7.255",  # Power L3
-    "In": "1-0:1.7.255",  # Power total in
-    "Out": "1-0:1.7.255",  # Power total out
-}
+
+###########
+# REFERENCE
+###########
+
+# "1-0:1.8.0"       Meter reading import
+# "1-0:2.8.0"       Meter reading export
+# "1-0:21.7.255"    Power L1
+# "1-0:41.7.255"    Power L2
+# "1-0:61.7.255"    Power L3
+# "1-0:1.7.255"     Power total in
+# "1-0:1.7.255"     Power total out
 
 
 def get_energy_usage() -> dict:
@@ -25,8 +28,11 @@ def get_energy_usage() -> dict:
             reading = ser.read(300).decode("utf-8")
             ser.flushInput()
             if reading.startswith("/"):
+                # accumulated
                 acc = re.search(r"(\d*\.\d*)\*kWh", reading)
                 acc = acc.groups()[0]
+
+                # current
                 curr = re.search(r"1-0:1\.7\.0\*255\((\d*\.\d*)\*W", reading)
                 curr = curr.groups()[0]
                 return {"acc": float(acc), "curr": float(curr)}
@@ -50,8 +56,6 @@ def write_energy_usage_to_influx(energy_usage: dict):
     }
 
     write_api.write(bucket, org, Point.from_dict(point))
-
-    pass
 
 
 def main():
